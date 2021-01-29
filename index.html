@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>车联网V2X异常行为管理中心后台系统</title>
+    <meta name="author" content="grlzjl" />
+
+    <!--JS-->
+    <!--bug纠错备注：jquery引入必须在前面，否则下面有个的自适应窗口的script无法启用-->
+    <script type="text/javascript" src="js/jquery-1.8.3.min.js"></script>
+    <!--echarts-->
+    <script type="text/javascript" src="js/echarts5.0.1.js"></script>
+    <!--百度地图-->
+    <script type="text/javascript" src="http://api.map.baidu.com/api?v=3.0&ak=m0CGxmiI5x5hqyloFxXI3ClCrG0l74dz"></script>
+    <script type="text/javascript" src="http://api.map.baidu.com/library/RichMarker/1.2/src/RichMarker_min.js"></script>
+    <script type="text/javascript" src="http://api.map.baidu.com/library/MarkerManager/1.2/src/MarkerManager_min.js"></script>
+
+    <!--自写脚本-->
+    <!--时间显示（页面右上角）-->
+    <script type="text/javascript" src="js/showTime.js"></script>
+    <!--视图切换，统计分析页-->
+    <script type="text/javascript" src="js/navChange.js"></script>
+    <!--轮询消息并更新各处消息展示相关-->
+    <script type="text/javascript" src="js/messageScroll.js"></script>
+    <!--top 5图表数据获取和更新图表-->
+    <script type="text/javascript" src="js/top5Chart.js"></script>
+    <!--地图相关-->
+    <script type="text/javascript" src="js/mapChange.js"></script>
+
+    <!--    CSS-->
+    <link rel="stylesheet" type="text/css" href="css/style.css"/>
+
+</head>
+
+<script>
+    // $(window).load(function(){
+    //     $(".loading").fadeOut()
+    // });
+    // 自适应窗口大小；以为相应组件大小动态变化提供基准，包括字体大小等
+    $(document).ready(function(){
+        var whei=$(window).width();
+        $("html").css({fontSize:whei/20});
+        $(window).resize(function(){
+            var whei=$(window).width();
+            $("html").css({fontSize:whei/20})
+        });
+    });
+</script>
+
+
+<body>
+<div class="header">
+    <h1>车联网V2X异常行为管理中心</h1>
+    <!--顶部导航-->
+    <div class="index_nav">
+        <ul>
+            <li class="nav_active">实时监测</li>
+            <li class="">统计分析</li>
+        </ul>
+    </div>
+    <!--时间区-->
+    <div class="timer">
+        <span id="date"></span>
+        <span id="day"></span>
+        <span id="hour"></span>
+        <span>:</span>
+        <span id="minute"></span>
+        <span>:</span>
+        <span id="second"></span>
+    </div>
+</div>
+
+<!--网页主体-->
+<div class="main_body">
+    <!--实时监控（与统计分析相互切换，通过显示和隐藏实现，代码在navChange.js中；可扩展更多页面）-->
+    <div class="inner">
+        <!--左侧主体，主要包括汇总数据和地图-->
+        <div class="left_cage">
+            <div class="frame_border1 cage_cl" style="margin-top: 5px !important; height: 100%;">
+                <div class="frame_border2">
+                    <!--汇总数据-->
+                    <div class="gross">
+                        <div class="gross_sub_box" style="background: url(images/gross1.png) no-repeat; background-size: 100% 100%;">
+                            <div style="width:30%; height:100%; float:left;"></div>
+                            <div style="width:70%; height:100%; float:right">
+                                <div class="gross_title">被举报车辆数</div>
+                                <div class="gross_content" id="car_num">0</div>
+                            </div>
+                        </div>
+                        <div class="gross_sub_box" style="background: url(images/gross2.png) no-repeat; background-size: 100% 100%;">
+                            <div style="width:30%; height:100%; float:left;"></div>
+                            <div style="width:70%; height:100%; float:right">
+                                <div class="gross_title">今日上报总数</div>
+                                <div class="gross_content" id="total_num">0</div>
+                            </div>
+                        </div>
+                        <div class="gross_sub_box" style="background: url(images/gross3.png) no-repeat; background-size: 100% 100%;">
+                            <div style="width:30%; height:100%; float:left;"></div>
+                            <div style="width:70%; height:100%; float:right">
+                                <div class="gross_title">疑似异常车辆</div>
+                                <div class="gross_content" id="suspect_num">0</div>
+                            </div>
+                        </div>
+                        <div class="gross_gauge" style="width:3.7rem;height:100%;float:right">
+                            <div id="gross_gauge1" style="width: 33.3%; height: 100%;float:left; padding: 2%"></div>
+                            <div id="gross_gauge2" style="width: 33.3%; height: 100%;float:left; padding: 2%"></div>
+                            <div id="gross_gauge3" style="width: 33.3%; height: 100%;float:left;padding: 2%"></div>
+                        </div>
+                    </div>
+                    <!--地图位置-->
+                    <div class="map" id="map"></div>
+                    <!--地图图例-->
+                    <div style="width:230px;height:50px;float:left;position:fixed;bottom: 15px;left:15px;background-color: rgba(21,52,115,0.5);z-index: 100;line-height: 50px;text-align:center;overflow: hidden">
+                        <img src="images/marker1.png" width="8px" height="10px"><span style="color:#fff;font-family:'Microsoft YaHei';font-size:10px;margin-left:2px;margin-right:5px">主动报告</span>
+                        <img src="images/marker2.png" width="8px" height="10px"><span style="color:#fff;font-family:'Microsoft YaHei';font-size:10px;margin-left:2px;margin-right:5px">证书安全</span>
+                        <img src="images/marker3.png" width="8px" height="10px"><span style="color:#fff;font-family:'Microsoft YaHei';font-size:10px;margin-left:2px;margin-right:5px">消息内容</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!--右侧主体，包括消息展示和Top 5图表-->
+        <div class="right_cage">
+            <!--三个消息滚动框架，对应三类上报消息-->
+            <!--主动报告-->
+            <div class="show_scroll">
+                <div class="frame_border1 cage_cl" style="margin-top: 5px !important;">
+                    <div class="frame_border2" style="padding: 1.2%;">
+                        <div class="message_title_box">
+                            <div class="message_title_innerbox">
+                                <div class="message_title">主动报告</div>
+                            </div>
+                        </div>
+                        <div id="message1" class="message_scroll_box"></div>
+                    </div>
+                </div>
+            </div>
+            <!--证书安全-->
+            <div class="show_scroll">
+                <div class="frame_border1 cage_cl" style="margin-top: 5px !important;">
+                    <div class="frame_border2" style="padding: 1.2%;">
+                        <div class="message_title_box">
+                            <div class="message_title_innerbox">
+                                <div class="message_title">证书安全</div>
+                            </div>
+                        </div>
+                        <div id="message2" class="message_scroll_box"></div>
+                    </div>
+                </div>
+            </div>
+            <!--消息内容-->
+            <div class="show_scroll">
+                <div class="frame_border1 cage_cl" style="margin-top: 5px !important;">
+                    <div class="frame_border2" style="padding: 1.2%;">
+                        <div class="message_title_box">
+                            <div class="message_title_innerbox">
+                                <div class="message_title">消息内容</div>
+                            </div>
+                        </div>
+                        <div id="message3" class="message_scroll_box"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!--top5图表-->
+            <div class="right_bottom">
+                <div class="frame_border1" style="margin-top: 5px !important; height: 100%;">
+                    <div class="frame_border2">
+                        <!--被举报排名-->
+                        <div style="width: 50%; height: 100%; float:left">
+                            <!--标题栏-->
+                            <div class="top5_title_box" style="height: 8%">
+                                <div class="top5_title_innerbox">
+                                    <div class="top5_title">被举报次数Top5</div>
+                                </div>
+                            </div>
+                            <!--Top5图表-->
+                            <div id="top5_chart1" class="top5_chart"></div>
+                        </div>
+                        <!--举报人排名-->
+                        <div style="width: 50%; height: 100%; float:left">
+                            <!--标题栏-->
+                            <div class="top5_title_box" style="height: 8%">
+                                <div class="top5_title_innerbox">
+                                    <div class="top5_title">举报次数Top5</div>
+                                </div>
+                            </div>
+                            <!--Top5图表-->
+                            <div id="top5_chart2" class="top5_chart"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--统计分析，暂设计4张图表位置-->
+    <div class="inner" style=" display:none;">
+        <div class="clear"></div>
+        <div class="stat_cage">
+            <div class="frame_border1">
+                <div class="frame_border2">
+                    <div class="stat_title">异常报告数量分类统计</div>
+                    <p class="stat_chart" id="chart01"></p>
+                </div>
+            </div>
+        </div>
+        <div class="stat_cage">
+            <div class="frame_border1">
+                <div class="frame_border2">
+                    <div class="stat_title">证书安全类异常分类统计</div>
+                    <p class="stat_chart" id="chart02"></p>
+                </div>
+            </div>
+        </div>
+        <div class="clear"></div>
+        <div class="stat_cage">
+            <div class="frame_border1">
+                <div class="frame_border2">
+                    <div class="stat_title">异常报告数量时间趋势</div>
+                    <p class="stat_chart" id="chart03"></p>
+                </div>
+            </div>
+        </div>
+        <div class="stat_cage">
+            <div class="frame_border1">
+                <div class="frame_border2">
+                    <div class="stat_title">消息内容类异常分类统计</div>
+                    <p class="stat_chart" id="chart04"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
